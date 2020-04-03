@@ -87,7 +87,7 @@ void client(SendPort sendPort) {
 }
 
 /// Stop the isolate immediately and return null
-Isolate stop(Isolate isolate) {  
+Isolate stop(Isolate isolate) {
   // Handle isolate being null
   isolate?.kill(priority: Isolate.immediate);
   return null;

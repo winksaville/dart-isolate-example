@@ -1,11 +1,13 @@
-main: main.dart
-	dart2native main.dart -o main
+bin/main: lib/main.dart
+	dart2native $< -o $@
 
-.PHONY: run
-run: main
-	./main
+run: bin/main
+	$<
 
+.PHONY: vm
+vm:
+	dart lib/main.dart
 
 .PHONY: clean
 clean:
-	rm -f main
+	rm -f bin/main
