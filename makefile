@@ -1,4 +1,4 @@
-bin/main: lib/main.dart
+bin/main: lib/main.dart lib/client.dart
 	dart2native $< -o $@
 
 run: bin/main

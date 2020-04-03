@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:async';
 import 'dart:isolate';
 
 /// Client expects to be in an isolate
