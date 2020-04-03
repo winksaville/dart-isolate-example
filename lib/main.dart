@@ -4,6 +4,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:isolate';
+import 'package:intl/intl.dart';
 
 // **********************************************
 // Added bidirectional communication, but this is
@@ -117,7 +118,10 @@ void main() async {
   msgCounter *= 2;
   double totalSecs = (done.toDouble() - beforeStart.toDouble()) / 1000000.0;
   double rate = msgCounter.toDouble() / totalSecs;
-  stdout.writeln('Total time=${totalSecs} msgs=${msgCounter} rate=${rate}');
+  NumberFormat f3digits = NumberFormat('###,###.00#');
+  NumberFormat f0digit = NumberFormat('###,###');
+  stdout.writeln(
+    'Total time=${f3digits.format(totalSecs)} secs, msgs=${msgCounter}, rate=${f0digit.format(rate)} msgs/sec');
 
   // Stop the isolate, we also verify a null "works"
   stdout.writeln('stopping');
