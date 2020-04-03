@@ -54,7 +54,7 @@ Future<Isolate> start() async {
     } else {
       assert(responsePort != null);
       msgCounter += 1;
-      responsePort.send('RESPONSE: ' + data);
+      responsePort.send(data); //'RESPONSE: ' + data);
       //stdout.writeln('RECEIVE: ' + data);
     }
   });
@@ -70,15 +70,15 @@ void client(SendPort sendPort) {
   sendPort.send(receivePort.sendPort);
 
   // Send the first data message
-  int counter = 0;
-  String msg = 'notification ' + counter.toString();
+  int counter = 1;
+  int msg = counter; //'notification ' + counter.toString();
   sendPort.send(msg);
 
   // Wait for response and send more messages as fast as we can
   receivePort.listen((data) {
     //stdout.writeln('RESP: ' + data);
     counter++;
-    msg = 'notification ' + counter.toString();
+    msg = counter; //'notification ' + counter.toString();
     //stdout.writeln('SEND: ' + msg);
     sendPort.send(msg);
   });
