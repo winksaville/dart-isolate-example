@@ -99,7 +99,9 @@ void main() async {
   NumberFormat f3digits = NumberFormat('###,###.00#');
   NumberFormat f0digit = NumberFormat('###,###');
   stdout.writeln(
-    'Total time=${f3digits.format(totalSecs)} secs, msgs=${msgCounter}, rate=${f0digit.format(rate)} msgs/sec');
+    'Total time=${f3digits.format(totalSecs)} secs '
+    'msgs=${f0digit.format(msgCounter)} '
+    'rate=${f0digit.format(rate)} msgs/sec');
 
   // Stop the isolate, we also verify a null "works"
   stdout.writeln('stopping');
