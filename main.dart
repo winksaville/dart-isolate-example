@@ -28,9 +28,9 @@ Future<Isolate> start() async {
   // Create a port used to communite with the isolate
   ReceivePort receivePort = ReceivePort();
 
-  // Spawn runTimer in an isolate passing the sendPort so
+  // Spawn client in an isolate passing the sendPort so
   // it can send us messages
-  Isolate isolate = await Isolate.spawn(runTimer, receivePort.sendPort);
+  Isolate isolate = await Isolate.spawn(client, receivePort.sendPort);
 
   // The first message on the receive port will be
   // the sendPort that we can issue our responses to runTime
@@ -55,7 +55,7 @@ Future<Isolate> start() async {
       assert(responsePort != null);
       msgCounter += 1;
       responsePort.send('RESPONSE: ' + data);
-      stdout.writeln('RECEIVE: ' + data);
+      //stdout.writeln('RECEIVE: ' + data);
     }
   });
 
@@ -63,25 +63,27 @@ Future<Isolate> start() async {
   return isolate;
 }
 
-/// runTimer execptes to be in an isolate
-void runTimer(SendPort sendPort) {
+/// Client expects to be in an isolate
+void client(SendPort sendPort) {
   // Send the "responsePort" to our partner
   ReceivePort receivePort = ReceivePort();
   sendPort.send(receivePort.sendPort);
 
+  // Send the first data message
   int counter = 0;
-  Timer.periodic(new Duration(seconds: 1), (Timer t) {
+  String msg = 'notification ' + counter.toString();
+  sendPort.send(msg);
+
+  // Wait for response and send more messages as fast as we can
+  receivePort.listen((data) {
+    //stdout.writeln('RESP: ' + data);
     counter++;
-    String msg = 'notification ' + counter.toString();  
-    stdout.writeln('SEND: ' + msg);
+    msg = 'notification ' + counter.toString();
+    //stdout.writeln('SEND: ' + msg);
     sendPort.send(msg);
   });
 
-  receivePort.listen((data) {
-    stdout.writeln('RESP: ' + data);
-  });
-
-  stdout.writeln('runTimer: done');
+  stdout.writeln('client: done');
 }
 
 /// Stop the isolate immediately and return null
