@@ -19,7 +19,9 @@ import 'dart:isolate';
 // [2](https://medium.com/@codinghive.dev/async-coding-with-dart-isolates-b09c5ec00f8b)
 // **********************************************
 
+// These Globals are separate instances in each isolate.
 SendPort responsePort = null;
+int msgCounter = 0;
 
 // Start an isolate and return it
 Future<Isolate> start() async {
@@ -51,6 +53,7 @@ Future<Isolate> start() async {
       responsePort = data;
     } else {
       assert(responsePort != null);
+      msgCounter += 1;
       responsePort.send('RESPONSE: ' + data);
       stdout.writeln('RECEIVE: ' + data);
     }
@@ -93,16 +96,28 @@ void main() async {
   stdin.echoMode = false;
   stdin.lineMode = false;
 
+  Stopwatch stopwatch = Stopwatch();
+  stopwatch.start();
+
   // Tell the user to press a key
   stdout.writeln('Press any key to stop:');
 
   // Start an isolate
+  int beforeStart = stopwatch.elapsedMicroseconds;
   Isolate isolate = await start();
 
-  // Get the first elememnt
+  // Wait for any key
+  int afterStart = stopwatch.elapsedMicroseconds;
   await stdin.first;
+  int done = stopwatch.elapsedMicroseconds;
 
-  // Stop the isolate, we also verity a null "works"
+  // Print time
+  msgCounter *= 2;
+  double totalSecs = (done.toDouble() - beforeStart.toDouble()) / 1000000.0;
+  double rate = msgCounter.toDouble() / totalSecs;
+  stdout.writeln('Total time=${totalSecs} msgs=${msgCounter} rate=${rate}');
+
+  // Stop the isolate, we also verify a null "works"
   stdout.writeln('stopping');
   stop(null);
   isolate = stop(isolate); // return null
