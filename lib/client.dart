@@ -1,24 +1,26 @@
 import 'dart:io';
 import 'dart:isolate';
 
-/// Client expects to be in an isolate
-void client(SendPort sendPort) {
-  // Send the "responsePort" to our partner
+/// Client receives a Send port from our partner
+/// so that messages maybe sent to it.
+void client(SendPort partnerPort) {
+  // Create a port that will receive messages from our partner
   ReceivePort receivePort = ReceivePort();
-  sendPort.send(receivePort.sendPort);
 
-  // Send the first data message
+  // Using the partnerPort send our sendPort so they
+  // can send us messages.
+  partnerPort.send(receivePort.sendPort);
+
+  // Since we're the client we send the first data message
   int counter = 1;
-  int msg = counter; //'notification ' + counter.toString();
-  sendPort.send(msg);
+  partnerPort.send(counter);
 
   // Wait for response and send more messages as fast as we can
   receivePort.listen((data) {
     //stdout.writeln('RESP: ' + data);
     counter++;
-    msg = counter; //'notification ' + counter.toString();
-    //stdout.writeln('SEND: ' + msg);
-    sendPort.send(msg);
+    //stdout.writeln('SEND: ' + counter);
+    partnerPort.send(counter);
   });
 
   stdout.writeln('client: done');
