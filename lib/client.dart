@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:isolate';
 
 /// Client receives a Send port from our partner
@@ -17,11 +16,11 @@ void client(SendPort partnerPort) {
 
   // Wait for response and send more messages as fast as we can
   receivePort.listen((data) {
-    //stdout.writeln('RESP: ' + data);
+    //print('RESP: $data');
     counter++;
-    //stdout.writeln('SEND: ' + counter);
+    //print('SEND: $counter');
     partnerPort.send(counter);
   });
 
-  stdout.writeln('client: done');
+  print('client: done');
 }

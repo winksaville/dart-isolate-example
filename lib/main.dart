@@ -26,13 +26,19 @@ SendPort responsePort = null;
 int msgCounter = 0;
 
 // Start an isolate and return it
-Future<Isolate> start() async {
+Future<Isolate> start(bool local) async {
   // Create a port used to communite with the isolate
   ReceivePort receivePort = ReceivePort();
 
   // Spawn client in an isolate passing the sendPort so
   // it can send us messages
-  Isolate isolate = await Isolate.spawn(client, receivePort.sendPort);
+  Isolate isolate;
+  if (local) {
+    isolate = Isolate.current;
+    client(receivePort.sendPort);
+  } else {
+    isolate = await Isolate.spawn(client, receivePort.sendPort);
+  }
 
   // The first message on the receive port will be
   // the sendPort that we can issue our responses to runTime
@@ -44,20 +50,20 @@ Future<Isolate> start() async {
   // responsePort "global" and in the listener function we
   // use "if (data is SendPort)" to initialize the responsePort
   //SendPort responsePort = await receivePort.first;
-  //stdout.writeln('Got the responsePort');
+  //print('Got the responsePort');
 
 
   // Listen on the receive port passing a routine that accepts
   // the data and prints it.
   receivePort.listen((dynamic data) {
     if (data is SendPort) {
-      stdout.writeln('RECEIVE: responsePort');
+      //print('RECEIVE: responsePort');
       responsePort = data;
     } else {
       assert(responsePort != null);
+      //print('RECEIVE: data: $data');
       msgCounter += 1;
-      responsePort.send(data); //'RESPONSE: ' + data);
-      //stdout.writeln('RECEIVE: ' + data);
+      responsePort.send(data);
     }
   });
 
@@ -68,7 +74,9 @@ Future<Isolate> start() async {
 /// Stop the isolate immediately and return null
 Isolate stop(Isolate isolate) {
   // Handle isolate being null
-  isolate?.kill(priority: Isolate.immediate);
+  if (isolate != Isolate.current) {
+    isolate?.kill(priority: Isolate.immediate);
+  }
   return null;
 }
 
@@ -81,11 +89,11 @@ void main() async {
   stopwatch.start();
 
   // Tell the user to press a key
-  stdout.writeln('Press any key to stop:');
+  print('Press any key to stop:');
 
   // Start an isolate
   int beforeStart = stopwatch.elapsedMicroseconds;
-  Isolate isolate = await start();
+  Isolate isolate = await start(true);
 
   // Wait for any key
   int afterStart = stopwatch.elapsedMicroseconds;
@@ -98,16 +106,16 @@ void main() async {
   double rate = msgCounter.toDouble() / totalSecs;
   NumberFormat f3digits = NumberFormat('###,###.00#');
   NumberFormat f0digit = NumberFormat('###,###');
-  stdout.writeln(
+  print(
     'Total time=${f3digits.format(totalSecs)} secs '
     'msgs=${f0digit.format(msgCounter)} '
     'rate=${f0digit.format(rate)} msgs/sec');
 
   // Stop the isolate, we also verify a null "works"
-  stdout.writeln('stopping');
+  print('stopping');
   stop(null);
   isolate = stop(isolate); // return null
-  stdout.writeln('stopped');
+  print('stopped');
 
   // Because main is async use exit
   exit(0);
