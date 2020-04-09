@@ -26,18 +26,20 @@ SendPort responsePort = null;
 int msgCounter = 0;
 
 // Start an isolate and return it
-Future<Isolate> start(bool local) async {
+Future<Isolate> start(bool local, Mode mode) async {
   // Create a port used to communite with the isolate
   ReceivePort receivePort = ReceivePort();
+
+  ClientParam clientParam = ClientParam(receivePort.sendPort, mode);
 
   // Spawn client in an isolate passing the sendPort so
   // it can send us messages
   Isolate isolate;
   if (local) {
     isolate = Isolate.current;
-    client(receivePort.sendPort);
+    client(clientParam);
   } else {
-    isolate = await Isolate.spawn(client, receivePort.sendPort);
+    isolate = await Isolate.spawn(client, clientParam);
   }
 
   // The first message on the receive port will be
@@ -55,15 +57,38 @@ Future<Isolate> start(bool local) async {
 
   // Listen on the receive port passing a routine that accepts
   // the data and prints it.
-  receivePort.listen((dynamic data) {
-    if (data is SendPort) {
-      //print('RECEIVE: responsePort');
-      responsePort = data;
-    } else {
+  receivePort.listen((dynamic message) {
+    //print('server: $message');
+    msgCounter += 1;
+
+    final now = DateTime.now().microsecondsSinceEpoch;
+    if (message is SendPort) {
+      //print('server: is SendPort');
+      responsePort = message;
+    } else if (message is Message) {
       assert(responsePort != null);
-      //print('RECEIVE: data: $data');
-      msgCounter += 1;
-      responsePort.send(data);
+
+      Message msg = message as Message;
+
+      // Use a Class
+      // Reusing existing message didn't seem to make big difference.
+      // About 430K+ msgs/sec.
+      final now = DateTime.now().microsecondsSinceEpoch;
+      final int duration = now - msg.microsecs;
+      if (true) {
+        // Reuse existing Message
+        msg.microsecs = now;
+        msg.duration = duration;
+        responsePort.send(msg);
+      } else {
+        // Create new Message
+        responsePort.send(Message(now, duration));
+      }
+    } else if (message is int) {
+      responsePort.send(now);
+    } else {
+      final int duration = now - (message[Cmd.microsecs] as int);
+      responsePort.send({Cmd.microsecs: now, Cmd.duration: duration});
     }
   });
 
@@ -93,7 +118,7 @@ void main() async {
 
   // Start an isolate
   int beforeStart = stopwatch.elapsedMicroseconds;
-  Isolate isolate = await start(true);
+  Isolate isolate = await start(true, Mode.asMap);
 
   // Wait for any key
   int afterStart = stopwatch.elapsedMicroseconds;
