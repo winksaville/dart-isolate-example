@@ -4,7 +4,10 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:isolate';
+
+import 'package:args/args.dart';
 import 'package:intl/intl.dart';
+
 import 'client.dart';
 
 // **********************************************
@@ -21,25 +24,65 @@ import 'client.dart';
 // [2](https://medium.com/@codinghive.dev/async-coding-with-dart-isolates-b09c5ec00f8b)
 // **********************************************
 
+enum ListenMode { local, isolate }
+
+class Arguments {
+  ListenMode listenMode;
+  MsgMode msgMode;
+}
+
+Arguments parseArgs(List<String> args) {
+  final ArgParser parser = ArgParser();
+  final List<String> validValues = <String>['local', 'isolate'];
+  parser.addOption('listenMode', abbr: 'l', allowed: validValues,
+    defaultsTo: 'isolate');
+  parser.addOption('msgMode', abbr: 'm', allowed: <String>['int', 'class', 'map'],
+    defaultsTo: 'int');
+  parser.addFlag('help', abbr: 'h', negatable: false);
+
+  final ArgResults argResults = parser.parse(args);
+  if (argResults['help'] == true) {
+    print(parser.usage);
+    exit(0);
+  }
+
+  Arguments arguments = Arguments();
+  switch (argResults['listenMode']) {
+    case 'local': arguments.listenMode = ListenMode.local; break;
+    case 'isolate': arguments.listenMode = ListenMode.isolate; break;
+  }
+
+  switch (argResults['msgMode']) {
+    case 'int': arguments.msgMode = MsgMode.asInt; break;
+    case 'class': arguments.msgMode = MsgMode.asClass; break;
+    case 'map': arguments.msgMode = MsgMode.asMap; break;
+  }
+
+  return arguments;
+}
+
 // These Globals are separate instances in each isolate.
 SendPort responsePort = null;
 int msgCounter = 0;
 
 // Start an isolate and return it
-Future<Isolate> start(bool local, Mode mode) async {
+Future<Isolate> start(Arguments args) async {
   // Create a port used to communite with the isolate
   ReceivePort receivePort = ReceivePort();
 
-  ClientParam clientParam = ClientParam(receivePort.sendPort, mode);
+  ClientParam clientParam = ClientParam(receivePort.sendPort, args.msgMode);
 
   // Spawn client in an isolate passing the sendPort so
   // it can send us messages
   Isolate isolate;
-  if (local) {
-    isolate = Isolate.current;
-    client(clientParam);
-  } else {
-    isolate = await Isolate.spawn(client, clientParam);
+  switch (args.listenMode) {
+    case ListenMode.local:
+      isolate = Isolate.current;
+      client(clientParam);
+      break;
+    case ListenMode.isolate:
+      isolate = await Isolate.spawn(client, clientParam);
+      break;
   }
 
   // The first message on the receive port will be
@@ -105,7 +148,9 @@ Isolate stop(Isolate isolate) {
   return null;
 }
 
-void main() async {
+Future<void> main(List<String> args) async {
+  final Arguments arguments = parseArgs(args);
+
   // Change stdin so it doesn't echo input and doesn't wait for enter key
   stdin.echoMode = false;
   stdin.lineMode = false;
@@ -118,7 +163,7 @@ void main() async {
 
   // Start an isolate
   int beforeStart = stopwatch.elapsedMicroseconds;
-  Isolate isolate = await start(true, Mode.asMap);
+  Isolate isolate = await start(arguments);
 
   // Wait for any key
   int afterStart = stopwatch.elapsedMicroseconds;

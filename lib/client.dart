@@ -1,7 +1,8 @@
+import 'dart:io';
 import 'dart:isolate';
 
 enum Cmd { microsecs, duration }
-enum Mode { asInt, asClass, asMap }
+enum MsgMode { asInt, asClass, asMap }
 
 class Message {
   int microsecs;
@@ -12,7 +13,7 @@ class Message {
 
 class ClientParam {
   SendPort partnerPort;
-  Mode mode;
+  MsgMode mode;
 
   ClientParam(this.partnerPort, this.mode);
 }
@@ -32,15 +33,15 @@ void client(ClientParam param) {
   int now = DateTime.now().microsecondsSinceEpoch;
 
   switch (param.mode) {
-    case Mode.asInt:
+    case MsgMode.asInt:
       // local=1.4m+ m/s, isolate=225k+ m/s
       param.partnerPort.send(now);
       break;
-    case Mode.asClass:
+    case MsgMode.asClass:
       // local=430k+ m/s, isolate=120k+ m/s
       param.partnerPort.send(Message(now, 0));
       break;
-    case Mode.asMap:
+    case MsgMode.asMap:
       // local=160k+ m/s isolate=50k+ m/s
       param.partnerPort.send({Cmd.microsecs: now, Cmd.duration: 0});
       break;
