@@ -1,0 +1,6 @@
+table Msg {
+  microsecs:int;
+  duration:int;
+}
+
+root_type Msg;

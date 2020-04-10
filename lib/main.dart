@@ -7,8 +7,10 @@ import 'dart:isolate';
 
 import 'package:args/args.dart';
 import 'package:intl/intl.dart';
+import 'package:flat_buffers/flat_buffers.dart' as fb;
 
 import 'client.dart';
+import 'test1_generated.dart' as test1;
 
 // **********************************************
 // Added bidirectional communication, but this is
@@ -150,6 +152,21 @@ Isolate stop(Isolate isolate) {
 
 Future<void> main(List<String> args) async {
   final Arguments arguments = parseArgs(args);
+
+  // Flatbuffer builder
+  fb.Builder builder = fb.Builder(initialSize: 1024);
+
+  // Create a MsgObjectBuilder
+  final test1.MsgObjectBuilder mob =
+    test1.MsgObjectBuilder(microsecs: 1, duration: 2);
+
+  // Serialize to bytes
+  List<int> buffer = mob.toBytes();
+  print('buffer=${buffer}');
+
+  // Deserialize from bytes and print contents
+  test1.Msg m = test1.Msg(buffer);
+  print('microsecs=${m.microsecs} duration=${m.duration}');
 
   // Change stdin so it doesn't echo input and doesn't wait for enter key
   stdin.echoMode = false;
