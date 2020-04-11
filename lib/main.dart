@@ -1,5 +1,16 @@
 // Based on [this](https://codingwithjoe.com/dart-fundamentals-isolates/) from
 // [Coding With Joe](codingwithjost.com).
+//
+// The way isolate's work when they are created the isolate aka
+// client is give a ReceiverPort.sendPort. This allow it to send
+// messages back to the creator aka the server. But the server can't
+// send messages to the client. It is at the perogative of the
+// client if and when to send a ReceivePort.sneport back to the server.
+//
+// Another option is to use an IsolateChannel [1] with an example at [2].
+//
+// [1](https://api.flutter.dev/flutter/package-stream_channel_isolate_channel/IsolateChannel-class.html)
+// [2](https://medium.com/@codinghive.dev/async-coding-with-dart-isolates-b09c5ec00f8b)
 
 import 'dart:io';
 import 'dart:async';
@@ -11,22 +22,6 @@ import 'package:flat_buffers/flat_buffers.dart' as fb;
 
 import 'client.dart';
 import 'test1_generated.dart' as test1;
-
-// **********************************************
-// Added bidirectional communication, but this is
-// really ugly. Because start is a function that
-// creates an isolate and we can't listen on a
-// ReceivePort twice make the repsone port global.
-// Obviously, we should create a new object that has
-// a responsePort field. But this is simplest for
-// now and the "correct" way looks to be using an
-// IsolateChannel [1] and here is an example [2].
-//
-// [1](https://api.flutter.dev/flutter/package-stream_channel_isolate_channel/IsolateChannel-class.html)
-// [2](https://medium.com/@codinghive.dev/async-coding-with-dart-isolates-b09c5ec00f8b)
-// **********************************************
-
-enum ListenMode { local, isolate }
 
 class Arguments {
   ListenMode listenMode;
@@ -67,92 +62,60 @@ Arguments parseArgs(List<String> args) {
   return arguments;
 }
 
-// These Globals are separate instances in each isolate.
-SendPort responsePort = null;
-int msgCounter = 0;
-
 // Start an isolate and return it
-Future<Isolate> start(Arguments args) async {
+Future<Isolate> start(Parameters serverParams) async {
   // Create a port used to communite with the isolate
   ReceivePort receivePort = ReceivePort();
 
-  ClientParam clientParam = ClientParam(receivePort.sendPort, args.msgMode);
+  // Create the client params
+  Parameters clientParams = Parameters(receivePort.sendPort,
+    serverParams.listenMode, serverParams.msgMode);
 
-  // Spawn client in an isolate passing the sendPort so
-  // it can send us messages
+  // Start the client. If were listenMode is local local
+  // we'll called the client directly other wise we'll spawn
+  // it into its own isolate.
   Isolate isolate;
-  switch (args.listenMode) {
+  switch (serverParams.listenMode) {
     case ListenMode.local:
       isolate = Isolate.current;
-      client(clientParam);
+      client(clientParams);
       break;
     case ListenMode.isolate:
-      isolate = await Isolate.spawn(client, clientParam);
+      isolate = await Isolate.spawn(client, clientParams);
       break;
   }
 
-  // The first message on the receive port will be
-  // the sendPort that we can issue our responses to runTime
-  //   This doesn't work because when listen here and
-  //   then again below, which leads to:
-  //      Unhanded exception:
-  //      Bad state: Stream has already been listened to.
-  // So we can't listen twice. Instead we have to make the
-  // responsePort "global" and in the listener function we
-  // use "if (data is SendPort)" to initialize the responsePort
-  //SendPort responsePort = await receivePort.first;
-  //print('Got the responsePort');
+  // The initial listener expects a sendPort and then it resets
+  // serverParams.listener to the "proper" listener based on msgMode.
+  serverParams.listener = (Parameters serverParams, int now, dynamic message) {
+    //print('server listener getting SendPort');
+    serverParams.counter = 0;
+    assert(message is SendPort);
+    serverParams.partnerPort = message as SendPort;
 
+    // Change the listener to the "proper" one.
+    switch (serverParams.msgMode) {
+      case MsgMode.asInt:
+        serverParams.listener = processAsInt;
+        break;
+      case MsgMode.asMap:
+        serverParams.listener = processAsMap;
+        break;
+      case MsgMode.asClass:
+        serverParams.listener = processAsClass;
+        break;
+      case MsgMode.asFb:
+        serverParams.listener = processAsFb;
+        break;
+    }
+  };
 
   // Listen on the receive port passing a routine that accepts
   // the data and prints it.
   receivePort.listen((dynamic message) {
-    //print('server: $message');
-    msgCounter += 1;
-
     final now = DateTime.now().microsecondsSinceEpoch;
-    if (message is SendPort) {
-      //print('server: is SendPort');
-      responsePort = message;
-    } else if (message is Message) {
-      assert(responsePort != null);
-
-      Message msg = message as Message;
-
-      // Use a Class
-      // Reusing existing message didn't seem to make big difference.
-      // About 430K+ msgs/sec.
-      final now = DateTime.now().microsecondsSinceEpoch;
-      final int duration = now - msg.microsecs;
-      if (true) {
-        // Reuse existing Message
-        msg.microsecs = now;
-        msg.duration = duration;
-        responsePort.send(msg);
-      } else {
-        // Create new Message
-        responsePort.send(Message(now, duration));
-      }
-    } else if (message is int) {
-      responsePort.send(now);
-    } else if (message is List<int>) {
-      // Deserialize msg from bytes and and calculate duration
-      test1.Msg msg = test1.Msg(message);
-      final int duration = now - msg.microsecs;
-
-      // Create our new MsgObjectBuilder
-      final test1.MsgObjectBuilder mob =
-        test1.MsgObjectBuilder(microsecs: now, duration: 0);
-
-      // Serialize
-      List<int> buffer = mob.toBytes();
-
-      // Send the buffer
-      responsePort.send(buffer);
-    } else {
-      final int duration = now - (message[Cmd.microsecs] as int);
-      responsePort.send({Cmd.microsecs: now, Cmd.duration: duration});
-    }
+    serverParams.counter += 1;
+    serverParams.listener(serverParams, now, message);
   });
 
   // Return the isolate that was created
@@ -181,9 +144,11 @@ Future<void> main(List<String> args) async {
   // Tell the user to press a key
   print('Press any key to stop:');
 
-  // Start an isolate
+  // Start the server and client
   int beforeStart = stopwatch.elapsedMicroseconds;
-  Isolate isolate = await start(arguments);
+  Parameters serverParams = Parameters(null, arguments.listenMode,
+    arguments.msgMode);
+  Isolate isolate = await start(serverParams);
 
   // Wait for any key
   int afterStart = stopwatch.elapsedMicroseconds;
@@ -191,14 +156,14 @@ Future<void> main(List<String> args) async {
   int done = stopwatch.elapsedMicroseconds;
 
   // Print time
-  msgCounter *= 2;
+  serverParams.counter *= 2; // Double the number of messages
   double totalSecs = (done.toDouble() - beforeStart.toDouble()) / 1000000.0;
-  double rate = msgCounter.toDouble() / totalSecs;
+  double rate = serverParams.counter.toDouble() / totalSecs;
   NumberFormat f3digits = NumberFormat('###,###.00#');
   NumberFormat f0digit = NumberFormat('###,###');
   print(
     'Total time=${f3digits.format(totalSecs)} secs '
-    'msgs=${f0digit.format(msgCounter)} '
+    'msgs=${f0digit.format(serverParams.counter)} '
     'rate=${f0digit.format(rate)} msgs/sec');
 
   // Stop the isolate, we also verify a null "works"
