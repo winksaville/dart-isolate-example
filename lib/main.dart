@@ -40,7 +40,7 @@ Arguments parseArgs(List<String> args) {
   final List<String> validValues = <String>['local', 'isolate'];
   parser.addOption('listenMode', abbr: 'l', allowed: validValues,
     defaultsTo: 'isolate');
-  parser.addOption('msgMode', abbr: 'm', allowed: <String>['asInt', 'asClass', 'asMap'],
+  parser.addOption('msgMode', abbr: 'm', allowed: <String>['asInt', 'asClass', 'asMap', 'asFb'],
     defaultsTo: 'asInt');
   parser.addFlag('help', abbr: 'h', negatable: false);
 
@@ -60,6 +60,7 @@ Arguments parseArgs(List<String> args) {
     case 'asInt': arguments.msgMode = MsgMode.asInt; break;
     case 'asClass': arguments.msgMode = MsgMode.asClass; break;
     case 'asMap': arguments.msgMode = MsgMode.asMap; break;
+    case 'asFb': arguments.msgMode = MsgMode.asFb; break;
   }
 
   print('arguments=$arguments');
@@ -134,6 +135,20 @@ Future<Isolate> start(Arguments args) async {
       }
     } else if (message is int) {
       responsePort.send(now);
+    } else if (message is List<int>) {
+      // Deserialize msg from bytes and and calculate duration
+      test1.Msg msg = test1.Msg(message);
+      final int duration = now - msg.microsecs;
+
+      // Create our new MsgObjectBuilder
+      final test1.MsgObjectBuilder mob =
+        test1.MsgObjectBuilder(microsecs: now, duration: 0);
+
+      // Serialize
+      List<int> buffer = mob.toBytes();
+
+      // Send the buffer
+      responsePort.send(buffer);
     } else {
       final int duration = now - (message[Cmd.microsecs] as int);
       responsePort.send({Cmd.microsecs: now, Cmd.duration: duration});
@@ -155,21 +170,6 @@ Isolate stop(Isolate isolate) {
 
 Future<void> main(List<String> args) async {
   final Arguments arguments = parseArgs(args);
-
-  // Flatbuffer builder
-  fb.Builder builder = fb.Builder(initialSize: 1024);
-
-  // Create a MsgObjectBuilder
-  final test1.MsgObjectBuilder mob =
-    test1.MsgObjectBuilder(microsecs: 1, duration: 2);
-
-  // Serialize to bytes
-  List<int> buffer = mob.toBytes();
-  print('buffer=${buffer}');
-
-  // Deserialize from bytes and print contents
-  test1.Msg m = test1.Msg(buffer);
-  print('microsecs=${m.microsecs} duration=${m.duration}');
 
   // Change stdin so it doesn't echo input and doesn't wait for enter key
   stdin.echoMode = false;

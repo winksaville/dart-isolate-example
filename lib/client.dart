@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'dart:isolate';
+import 'package:flat_buffers/flat_buffers.dart' as fb;
+
+import 'test1_generated.dart' as test1;
 
 enum Cmd { microsecs, duration }
-enum MsgMode { asInt, asClass, asMap }
+enum MsgMode { asInt, asClass, asMap, asFb }
 
 class Message {
   int microsecs;
@@ -45,6 +48,16 @@ void client(ClientParam param) {
       // local=160k+ m/s isolate=50k+ m/s
       param.partnerPort.send({Cmd.microsecs: now, Cmd.duration: 0});
       break;
+    case MsgMode.asFb:
+      // Create our new MsgObjectBuilder
+      final test1.MsgObjectBuilder mob =
+        test1.MsgObjectBuilder(microsecs: now, duration: 0);
+
+      // Serialize
+      List<int> buffer = mob.toBytes();
+
+      // Send the buffer
+      param.partnerPort.send(buffer);
   }
 
   // Wait for response and send more messages as fast as we can
@@ -75,6 +88,20 @@ void client(ClientParam param) {
       }
     } else if (message is int) {
       param.partnerPort.send(now);
+    } else if (message is List<int>) {
+      // Deserialize msg from bytes and and calculate duration
+      test1.Msg msg = test1.Msg(message);
+      final int duration = now - msg.microsecs;
+
+      // Create our new MsgObjectBuilder
+      final test1.MsgObjectBuilder mob =
+        test1.MsgObjectBuilder(microsecs: now, duration: duration);
+
+      // Serialize
+      List<int> buffer = mob.toBytes();
+
+      // Send the buffer
+      param.partnerPort.send(buffer);
     } else {
       final int duration = now - (message[Cmd.microsecs] as int);
       param.partnerPort.send({Cmd.microsecs: now, Cmd.duration: duration});
