@@ -31,6 +31,8 @@ enum ListenMode { local, isolate }
 class Arguments {
   ListenMode listenMode;
   MsgMode msgMode;
+
+  String toString() => '$listenMode $msgMode'.toString();
 }
 
 Arguments parseArgs(List<String> args) {
@@ -38,8 +40,8 @@ Arguments parseArgs(List<String> args) {
   final List<String> validValues = <String>['local', 'isolate'];
   parser.addOption('listenMode', abbr: 'l', allowed: validValues,
     defaultsTo: 'isolate');
-  parser.addOption('msgMode', abbr: 'm', allowed: <String>['int', 'class', 'map'],
-    defaultsTo: 'int');
+  parser.addOption('msgMode', abbr: 'm', allowed: <String>['asInt', 'asClass', 'asMap'],
+    defaultsTo: 'asInt');
   parser.addFlag('help', abbr: 'h', negatable: false);
 
   final ArgResults argResults = parser.parse(args);
@@ -55,11 +57,12 @@ Arguments parseArgs(List<String> args) {
   }
 
   switch (argResults['msgMode']) {
-    case 'int': arguments.msgMode = MsgMode.asInt; break;
-    case 'class': arguments.msgMode = MsgMode.asClass; break;
-    case 'map': arguments.msgMode = MsgMode.asMap; break;
+    case 'asInt': arguments.msgMode = MsgMode.asInt; break;
+    case 'asClass': arguments.msgMode = MsgMode.asClass; break;
+    case 'asMap': arguments.msgMode = MsgMode.asMap; break;
   }
 
+  print('arguments=$arguments');
   return arguments;
 }
 
@@ -89,7 +92,7 @@ Future<Isolate> start(Arguments args) async {
 
   // The first message on the receive port will be
   // the sendPort that we can issue our responses to runTime
-  //   This doesn't work because wen listen here and
+  //   This doesn't work because when listen here and
   //   then again below, which leads to:
   //      Unhanded exception:
   //      Bad state: Stream has already been listened to.
