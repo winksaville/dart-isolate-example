@@ -11,11 +11,11 @@ void client(Parameters params) {
   assert(params.partnerPort != null);
 
   // Create a port that will receive messages from our partner
-  ReceivePort receivePort = ReceivePort();
+  params.receivePort = ReceivePort();
 
   // Using the partnerPort send our sendPort so they
   // can send us messages.
-  params.partnerPort.send(receivePort.sendPort);
+  params.partnerPort.send(params.receivePort.sendPort);
 
   // Since we're the client we send the first data message
   params.counter = 1;
@@ -43,11 +43,12 @@ void client(Parameters params) {
   }
 
   // Wait for response and send more messages as fast as we can
-  receivePort.listen((dynamic message) {
-    final now = DateTime.now().microsecondsSinceEpoch;
-    params.counter += 1;
-    params.listener(params, now, message);
-  });
-
-  print('client: done');
+  params.receivePort.listen(
+    (dynamic message) {
+      final now = DateTime.now().microsecondsSinceEpoch;
+      params.counter += 1;
+      params.listener(params, now, message);
+    },
+    //onDone: () => print('client: listen onDone'),
+  );
 }

@@ -9,84 +9,131 @@ isolate or different isloates. The higest performance is seen
 when running in the same isolate, i.e. ListenMode is "local" and
 passing a single integer as the message, i.e. MsgMode is "int".
 
-## Build main
-Install newer dart with dart2native compiler
+## Prerequisites
+
+- Newer version of dart with [dart2native](https://dart.dev/tools/dart2native)
+- flatc the [Flatbuffer compiler](https://google.github.io/flatbuffers/)
+
+## Build
 ```
 $ make
+flatc -o lib/ --dart schema/test1.fbs
 dart2native lib/main.dart -o bin/main
 Generated: /home/wink/prgs/dart/isolate-example/bin/main
 ```
 
 ## Help
 ```
-$ ./bin/main --help
+$ ./bin/main -h
+-t, --test          Number of seconds to test each combination 0 is manual mode
+                    (defaults to "0")
 -l, --listenMode    [local, isolate (default)]
--m, --msgMode       [int (default), class, map]
--h, --help
+-m, --msgMode       [asInt (default), asClass, asMap, asFb]
+-h, --help    
 ```
 
 ## Run
 
-Build main if not already built then run it
+Using the run target to build if necessary and then run:
 ```
 $ make run
-bin/main
-Press any key to stop:
-client: done
-RECEIVE: responsePort
-Total time=4.398 secs msgs=990,734 rate=225,275 msgs/sec
-stopping
-stopped
+flatc -o lib/ --dart schema/test1.fbs
+dart2native lib/main.dart -o bin/main
+Generated: /home/wink/prgs/dart/isolate-example/bin/main
+arguments=ListenMode.isolate MsgMode.asInt
+Press any key to stop...
+Total time=3.677 secs msgs=572,616 rate=155,727 msgs/sec
 ```
 
 Run listenMode `local` and the various msgModes:
 ```
 (base) wink@wink-desktop:~/prgs/dart/isolate-example (master)
-$ ./bin/main -l local -m int
-Press any key to stop:
-client: done
-Total time=3.772 secs msgs=5,499,692 rate=1,458,067 msgs/sec
-stopping
-stopped
+$ ./bin/main -l local -m asInt
+arguments=ListenMode.local MsgMode.asInt
+Press any key to stop...
+Total time=1.954 secs msgs=1,016,244 rate=520,089 msgs/sec
 (base) wink@wink-desktop:~/prgs/dart/isolate-example (master)
-$ ./bin/main -l local -m class
-Press any key to stop:
-client: done
-Total time=2.882 secs msgs=1,208,028 rate=419,192 msgs/sec
-stopping
-stopped
+$ ./bin/main -l local -m asClass
+arguments=ListenMode.local MsgMode.asClass
+Press any key to stop...
+Total time=2.451 secs msgs=676,282 rate=275,896 msgs/sec
 (base) wink@wink-desktop:~/prgs/dart/isolate-example (master)
-$ ./bin/main -l local -m map
-Press any key to stop:
-client: done
-Total time=1.954 secs msgs=288,002 rate=147,418 msgs/sec
-stopping
-stopped
+$ ./bin/main -l local -m asMap
+arguments=ListenMode.local MsgMode.asMap
+Press any key to stop...
+Total time=1.605 secs msgs=188,534 rate=117,467 msgs/sec
+(base) wink@wink-desktop:~/prgs/dart/isolate-example (master)
+$ ./bin/main -l local -m asFb
+arguments=ListenMode.local MsgMode.asFb
+Press any key to stop...
+Total time=2.323 secs msgs=546,562 rate=235,332 msgs/sec
 ```
 
-Run listenMode `isolate` and the various msgModes:
+A more convenient way to run the various modes is --test=N
+where N is the number of seconds to run each combination of
+listenMode and msgMode. Here is an example where each
+combination is run for 3 seconds:
 ```
-(base) wink@wink-desktop:~/prgs/dart/isolate-example (master)
-$ ./bin/main -l isolate -m int
-Press any key to stop:
-client: done
-Total time=3.515 secs msgs=784,712 rate=223,240 msgs/sec
-stopping
-stopped
-(base) wink@wink-desktop:~/prgs/dart/isolate-example (master)
-$ ./bin/main -l isolate -m class
-Press any key to stop:
-client: done
-Total time=2.299 secs msgs=257,894 rate=112,188 msgs/sec
-stopping
-stopped
-(base) wink@wink-desktop:~/prgs/dart/isolate-example (master)
-$ ./bin/main -l isolate -m map
-Press any key to stop:
-client: done
-Total time=4.474 secs msgs=232,994 rate=52,079 msgs/sec
-stopping
-stopped
+$ make run test=3
+arguments=ListenMode.isolate MsgMode.asInt
+modes=[ListenMode.local, MsgMode.asInt]
+wait about 3 seconds...
+Total time=3.00 secs msgs=1,734,574 rate=578,100 msgs/sec
+modes=[ListenMode.local, MsgMode.asClass]
+wait about 3 seconds...
+Total time=3.001 secs msgs=855,536 rate=285,104 msgs/sec
+modes=[ListenMode.local, MsgMode.asMap]
+wait about 3 seconds...
+Total time=3.001 secs msgs=368,088 rate=122,658 msgs/sec
+modes=[ListenMode.local, MsgMode.asFb]
+wait about 3 seconds...
+Total time=3.001 secs msgs=716,408 rate=238,728 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asInt]
+wait about 3 seconds...
+Total time=3.005 secs msgs=502,402 rate=167,192 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asClass]
+wait about 3 seconds...
+Total time=3.002 secs msgs=309,922 rate=103,241 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asMap]
+wait about 3 seconds...
+Total time=3.004 secs msgs=135,288 rate=45,038 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asFb]
+wait about 3 seconds...
+Total time=3.003 secs msgs=224,396 rate=74,725 msgs/sec
+```
+
+It is also important to run the tests with the dart
+virtual machine as the performance can be different.
+This can be done with makefile using `vm` target such
+as `make vm test=3`. Or directly with `dart lib/main.dart --test=3`:
+```
+$ dart lib/main.dart --test=3
+lib/main.dart: Warning: Interpreting this as package URI, 'package:isolate_exmaple/main.dart'.
+arguments=ListenMode.isolate MsgMode.asInt
+modes=[ListenMode.local, MsgMode.asInt]
+wait about 3 seconds...
+Total time=3.012 secs msgs=3,857,090 rate=1,280,505 msgs/sec
+modes=[ListenMode.local, MsgMode.asClass]
+wait about 3 seconds...
+Total time=3.001 secs msgs=1,212,630 rate=404,137 msgs/sec
+modes=[ListenMode.local, MsgMode.asMap]
+wait about 3 seconds...
+Total time=3.002 secs msgs=141,408 rate=47,107 msgs/sec
+modes=[ListenMode.local, MsgMode.asFb]
+wait about 3 seconds...
+Total time=3.006 secs msgs=1,319,946 rate=439,163 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asInt]
+wait about 3 seconds...
+Total time=3.037 secs msgs=677,090 rate=222,960 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asClass]
+wait about 3 seconds...
+Total time=3.032 secs msgs=337,158 rate=111,218 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asMap]
+wait about 3 seconds...
+Total time=3.035 secs msgs=48,840 rate=16,094 msgs/sec
+modes=[ListenMode.isolate, MsgMode.asFb]
+wait about 3 seconds...
+Total time=3.04 secs msgs=324,408 rate=106,725 msgs/sec
 ```
 
 ## Clean
@@ -108,5 +155,4 @@ RECEIVE: responsePort
 Total time=2.693 secs msgs=585,980 rate=217,592 msgs/sec
 stopping
 stopped
-
 ```

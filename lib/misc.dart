@@ -13,6 +13,8 @@ class Message {
 }
 
 class Parameters {
+  Isolate isolate;
+  ReceivePort receivePort;
   SendPort partnerPort;
   MsgMode msgMode;
   ListenMode listenMode;
@@ -67,3 +69,6 @@ void processAsFb(Parameters params, int now, List<int> msg) {
   params.partnerPort.send(buffer);
 }
 
+Future<Duration> delay(Duration duration) async {
+    return Future<Duration>.delayed(duration);
+}
