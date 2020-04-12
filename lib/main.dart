@@ -21,6 +21,7 @@ import 'package:intl/intl.dart';
 import 'package:flat_buffers/flat_buffers.dart' as fb;
 
 import 'client.dart';
+import 'misc.dart';
 import 'test1_generated.dart' as test1;
 
 class Arguments {
