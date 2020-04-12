@@ -131,9 +131,7 @@ Isolate stop(Isolate isolate) {
   return null;
 }
 
-Future<void> main(List<String> args) async {
-  final Arguments arguments = parseArgs(args);
-
+Future<void> doWork(Arguments arguments) async {
   // Change stdin so it doesn't echo input and doesn't wait for enter key
   stdin.echoMode = false;
   stdin.lineMode = false;
@@ -174,4 +172,10 @@ Future<void> main(List<String> args) async {
 
   // Because main is async use exit
   exit(0);
+}
+
+Future<void> main(List<String> args) async {
+  final Arguments arguments = parseArgs(args);
+
+  doWork(arguments);
 }
