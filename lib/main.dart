@@ -13,34 +13,34 @@
 // [2](https://medium.com/@codinghive.dev/async-coding-with-dart-isolates-b09c5ec00f8b)
 
 import 'dart:io';
-import 'dart:async';
 import 'dart:isolate';
-
 import 'package:args/args.dart';
 import 'package:intl/intl.dart';
-import 'package:flat_buffers/flat_buffers.dart' as fb;
-
 import 'client.dart';
 import 'misc.dart';
-import 'test1_generated.dart' as test1;
 
 class Arguments {
   ListenMode listenMode;
   MsgMode msgMode;
   int testTimeInSecs;
 
-  String toString() => '$listenMode $msgMode'.toString();
+  @override
+  String toString() => '$listenMode $msgMode $testTimeInSecs';
 }
 
 Arguments parseArgs(List<String> args) {
   final ArgParser parser = ArgParser();
-  parser.addOption('test', abbr: 't',
-    defaultsTo: '0', help: 'Number of seconds to test each combination 0 is manual mode');
+  parser.addOption('test',
+      abbr: 't',
+      defaultsTo: '0',
+      help: 'Number of seconds to test each combination 0 is manual mode');
   final List<String> validValues = <String>['local', 'isolate'];
-  parser.addOption('listenMode', abbr: 'l', allowed: validValues,
-    defaultsTo: 'isolate');
-  parser.addOption('msgMode', abbr: 'm', allowed: <String>['asInt', 'asClass', 'asMap', 'asFb'],
-    defaultsTo: 'asInt');
+  parser.addOption('listenMode',
+      abbr: 'l', allowed: validValues, defaultsTo: 'isolate');
+  parser.addOption('msgMode',
+      abbr: 'm',
+      allowed: <String>['asInt', 'asClass', 'asMap', 'asFb'],
+      defaultsTo: 'asInt');
   parser.addFlag('help', abbr: 'h', negatable: false);
 
   final ArgResults argResults = parser.parse(args);
@@ -49,33 +49,45 @@ Arguments parseArgs(List<String> args) {
     exit(0);
   }
 
-  Arguments arguments = Arguments();
-  switch (argResults['listenMode']) {
-    case 'local': arguments.listenMode = ListenMode.local; break;
-    case 'isolate': arguments.listenMode = ListenMode.isolate; break;
+  final Arguments arguments = Arguments();
+  switch (argResults['listenMode'] as String) {
+    case 'local':
+      arguments.listenMode = ListenMode.local;
+      break;
+    case 'isolate':
+      arguments.listenMode = ListenMode.isolate;
+      break;
   }
 
-  switch (argResults['msgMode']) {
-    case 'asInt': arguments.msgMode = MsgMode.asInt; break;
-    case 'asClass': arguments.msgMode = MsgMode.asClass; break;
-    case 'asMap': arguments.msgMode = MsgMode.asMap; break;
-    case 'asFb': arguments.msgMode = MsgMode.asFb; break;
+  switch (argResults['msgMode'] as String) {
+    case 'asInt':
+      arguments.msgMode = MsgMode.asInt;
+      break;
+    case 'asClass':
+      arguments.msgMode = MsgMode.asClass;
+      break;
+    case 'asMap':
+      arguments.msgMode = MsgMode.asMap;
+      break;
+    case 'asFb':
+      arguments.msgMode = MsgMode.asFb;
+      break;
   }
 
-  arguments.testTimeInSecs = int.parse(argResults['test']);
+  arguments.testTimeInSecs = int.parse(argResults['test'] as String);
 
-  print('arguments=$arguments');
+  //print('arguments=$arguments');
   return arguments;
 }
 
 // Start an isolate and return its Parameters
 Future<Parameters> start(Parameters serverParams) async {
-  // Create a port used to communite with the isolate
+  // Create a port used to communicate with the isolate
   serverParams.receivePort = ReceivePort();
 
   // Create the client params
-  Parameters clientParams = Parameters(serverParams.receivePort.sendPort,
-    serverParams.listenMode, serverParams.msgMode);
+  final Parameters clientParams = Parameters(serverParams.receivePort.sendPort,
+      serverParams.listenMode, serverParams.msgMode);
 
   // Start the client. If were listenMode is local local
   // we'll called the client directly other wise we'll spawn
@@ -119,7 +131,7 @@ Future<Parameters> start(Parameters serverParams) async {
   // the data and prints it.
   serverParams.receivePort.listen(
     (dynamic message) {
-      final now = DateTime.now().microsecondsSinceEpoch;
+      final int now = DateTime.now().microsecondsSinceEpoch;
       serverParams.counter += 1;
       serverParams.listener(serverParams, now, message);
     },
@@ -144,56 +156,77 @@ void stop(Parameters clientParams) {
   }
 }
 
+class ResultStrings {
+  ResultStrings(this.totalTimeStr, this.msgsStr, this.rateStr);
+
+  String totalTimeStr;
+  String msgsStr;
+  String rateStr;
+}
+
 class WorkResult {
+  WorkResult(this.modes, this.msgs, this.totalSecs);
+
+  Modes modes;
   int msgs;
   double totalSecs;
 
-  WorkResult(this.msgs, this.totalSecs);
+  ResultStrings resultString(int padding) {
+    final NumberFormat f3digits = NumberFormat('###,###.00#');
+    final NumberFormat f0digit = NumberFormat('###,###');
+    final double rate = msgs.toDouble() / totalSecs;
+    return ResultStrings(
+      f3digits.format(totalSecs).padLeft(padding),
+      f0digit.format(msgs).padLeft(padding),
+      f0digit.format(rate).padLeft(padding));
+  }
 
   @override
   String toString() {
-    NumberFormat f3digits = NumberFormat('###,###.00#');
-    NumberFormat f0digit = NumberFormat('###,###');
-    double rate = msgs.toDouble() / totalSecs;
-    return
-      'Total time=${f3digits.format(totalSecs)} secs '
-      'msgs=${f0digit.format(msgs)} '
-      'rate=${f0digit.format(rate)} msgs/sec'.toString();
+    final ResultStrings s = resultString(0);
+    return 'time: ${s.totalTimeStr} msgs: ${s.msgsStr} rate: ${s.rateStr}';
+  }
+
+  static String header(int padding) {
+    final String s1 = 'Time secs'.padLeft(padding);
+    final String s2 = 'msg count'.padLeft(padding);
+    final String s3 = 'rate msgs/sec'.padLeft(padding);
+    return '$s1$s2$s3';
+  }
+
+  String toStringNoLabels(int padding) {
+    final ResultStrings s = resultString(padding);
+    return '${s.totalTimeStr}${s.msgsStr}${s.rateStr}';
   }
 }
 
 Future<WorkResult> doWork(Arguments arguments) async {
-
-  Stopwatch stopwatch = Stopwatch();
+  final Stopwatch stopwatch = Stopwatch();
   stopwatch.start();
 
   // Start the server and client
-  int beforeStart = stopwatch.elapsedMicroseconds;
-  Parameters serverParams = Parameters(null, arguments.listenMode,
-    arguments.msgMode);
-  Parameters clientParams = await start(serverParams);
+  final int beforeStart = stopwatch.elapsedMicroseconds;
+  final Parameters serverParams =
+      Parameters(null, arguments.listenMode, arguments.msgMode);
+  final Parameters clientParams = await start(serverParams);
 
-  int afterStart;
   if (arguments.testTimeInSecs == 0) {
     // Tell the user to press a key
-    print('Press any key to stop...');
+    print('${arguments.listenMode} ${arguments.msgMode} -- Press any key to stop...');
 
     // Change stdin so it doesn't echo input and doesn't wait for enter key
     stdin.echoMode = false;
     stdin.lineMode = false;
-    afterStart = stopwatch.elapsedMicroseconds;
     await stdin.first;
   } else {
-    print('wait about ${arguments.testTimeInSecs} '
-          'second${arguments.testTimeInSecs > 1 ? "s" : ""}...');
-    afterStart = stopwatch.elapsedMicroseconds;
     await delay(Duration(seconds: arguments.testTimeInSecs));
   }
-  int done = stopwatch.elapsedMicroseconds;
+  final int done = stopwatch.elapsedMicroseconds;
 
   // Print time
-  double totalSecs = (done.toDouble() - beforeStart.toDouble()) / 1000000.0;
-  WorkResult result = WorkResult(serverParams.counter * 2, totalSecs);
+  final double totalSecs =
+      (done.toDouble() - beforeStart.toDouble()) / 1000000.0;
+  final WorkResult result = WorkResult(Modes(arguments.listenMode, arguments.msgMode), serverParams.counter * 2, totalSecs);
 
   // Stop the client
   stop(clientParams);
@@ -204,32 +237,48 @@ Future<WorkResult> doWork(Arguments arguments) async {
   return result;
 }
 
+class Modes {
+  Modes(this.listenMode, this.msgMode);
+
+  ListenMode listenMode;
+  MsgMode msgMode;
+
+  @override
+  String toString() => '${listenMode.toString().padRight(18)} $msgMode';
+}
+
 Future<void> main(List<String> args) async {
   final Arguments arguments = parseArgs(args);
 
+  final List<WorkResult> results = <WorkResult>[];
   if (arguments.testTimeInSecs > 0) {
-    List<List<dynamic>> listenAndMsgModes = [
-      [ ListenMode.local, MsgMode.asInt],
-      [ ListenMode.local, MsgMode.asClass],
-      [ ListenMode.local, MsgMode.asMap],
-      [ ListenMode.local, MsgMode.asFb],
-      [ ListenMode.isolate, MsgMode.asInt],
-      [ ListenMode.isolate, MsgMode.asClass],
-      [ ListenMode.isolate, MsgMode.asMap],
-      [ ListenMode.isolate, MsgMode.asFb],
-    ] as List<List<dynamic>>;
-    for (List<dynamic> modes in listenAndMsgModes) {
-      print('modes=${modes}');
-      arguments.listenMode = modes[0];
-      arguments.msgMode = modes[1];
-      WorkResult result = await doWork(arguments);
-      print(result.toString());
+    final List<Modes> listenAndMsgModes = <Modes>[
+      Modes(ListenMode.local, MsgMode.asInt),
+      Modes(ListenMode.local, MsgMode.asClass),
+      Modes(ListenMode.local, MsgMode.asMap),
+      Modes(ListenMode.local, MsgMode.asFb),
+      Modes(ListenMode.isolate, MsgMode.asInt),
+      Modes(ListenMode.isolate, MsgMode.asClass),
+      Modes(ListenMode.isolate, MsgMode.asMap),
+      Modes(ListenMode.isolate, MsgMode.asFb),
+    ];
+    for (final Modes modes in listenAndMsgModes) {
+      print('time=${arguments.testTimeInSecs} $modes');
+      arguments.listenMode = modes.listenMode;
+      arguments.msgMode = modes.msgMode;
+      final WorkResult result = await doWork(arguments);
+      results.add(result);
+    }
+    print('');
+    print('${"".padLeft(34)}${WorkResult.header(15)}');
+    for (final WorkResult result in results) {
+      print('${result.modes.toString().padRight(34)}${result.toStringNoLabels(15)}');
     }
   } else {
-      WorkResult result = await doWork(arguments);
-      print(result.toString());
+    final WorkResult result = await doWork(arguments);
+    print(result);
   }
 
-  // Uses exit because maing returns Future<void> otherwise we hang
+  // Uses exit because main returns Future<void>, otherwise we hang
   exit(0);
 }
