@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'package:flat_buffers/flat_buffers.dart' as fb;
 import 'test1_generated.dart' as test1;
 
 enum Cmd { microsecs, duration }
@@ -62,18 +63,20 @@ void processAsClass(Parameters params, int now, Message msg) {
   }
 }
 
-/// Process Flatbuffer messages which is a List<int>
+/// Process Flat buffers messages which is a List<int>
 void processAsFb(Parameters params, int now, List<int> msg) {
-  // Deserialize msg from bytes and and calculate duration
+  //// Deserialize msg from bytes and and calculate duration
   final test1.Msg m = test1.Msg(msg);
   final int duration = now - m.microsecs;
 
-  // Create our new MsgObjectBuilder
-  final test1.MsgObjectBuilder mob =
-      test1.MsgObjectBuilder(microsecs: now, duration: duration);
+  final fb.Builder msgBb = fb.Builder(initialSize: 48);
+  final test1.MsgBuilder msgBuilder = test1.MsgBuilder(msgBb);
 
-  // Serialize
-  final List<int> buffer = mob.toBytes();
+  // Build the buffer
+  msgBuilder.begin();
+  msgBuilder.addMicrosecs(now);
+  msgBuilder.addDuration(duration);
+  final List<int> buffer = msgBb.finish(msgBuilder.finish());
 
   // Send the buffer
   params.partnerPort.send(buffer);
