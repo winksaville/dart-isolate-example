@@ -23,6 +23,7 @@ class Arguments {
   ListenMode listenMode;
   MsgMode msgMode;
   int testTimeInSecs;
+  int testRepeats;
 
   @override
   String toString() => '$listenMode $msgMode $testTimeInSecs';
@@ -34,9 +35,10 @@ Arguments parseArgs(List<String> args) {
       abbr: 't',
       defaultsTo: '0',
       help: 'Number of seconds to test each combination 0 is manual mode');
-  final List<String> validValues = <String>['local', 'isolate'];
+  parser.addOption('repeats',
+      abbr: 'r', defaultsTo: '1', help: 'The number repeats of each test');
   parser.addOption('listenMode',
-      abbr: 'l', allowed: validValues, defaultsTo: 'isolate');
+      abbr: 'l', allowed: <String>['local', 'isolate'], defaultsTo: 'isolate');
   parser.addOption('msgMode',
       abbr: 'm',
       allowed: <String>['asInt', 'asClass', 'asMap', 'asFb'],
@@ -75,6 +77,7 @@ Arguments parseArgs(List<String> args) {
   }
 
   arguments.testTimeInSecs = int.parse(argResults['test'] as String);
+  arguments.testRepeats = int.parse(argResults['repeats'] as String);
 
   //print('arguments=$arguments');
   return arguments;
@@ -172,13 +175,13 @@ class WorkResult {
   double totalSecs;
 
   ResultStrings resultString(int padding) {
-    final NumberFormat f3digits = NumberFormat('###,###.00#');
+    final NumberFormat f3digits = NumberFormat('###,###.000');
     final NumberFormat f0digit = NumberFormat('###,###');
     final double rate = msgs.toDouble() / totalSecs;
     return ResultStrings(
-      f3digits.format(totalSecs).padLeft(padding),
-      f0digit.format(msgs).padLeft(padding),
-      f0digit.format(rate).padLeft(padding));
+        f3digits.format(totalSecs).padLeft(padding),
+        f0digit.format(msgs).padLeft(padding),
+        f0digit.format(rate).padLeft(padding));
   }
 
   @override
@@ -212,7 +215,8 @@ Future<WorkResult> doWork(Arguments arguments) async {
 
   if (arguments.testTimeInSecs == 0) {
     // Tell the user to press a key
-    print('${arguments.listenMode} ${arguments.msgMode} -- Press any key to stop...');
+    print(
+        '${arguments.listenMode} ${arguments.msgMode} -- Press any key to stop...');
 
     // Change stdin so it doesn't echo input and doesn't wait for enter key
     stdin.echoMode = false;
@@ -226,7 +230,10 @@ Future<WorkResult> doWork(Arguments arguments) async {
   // Print time
   final double totalSecs =
       (done.toDouble() - beforeStart.toDouble()) / 1000000.0;
-  final WorkResult result = WorkResult(Modes(arguments.listenMode, arguments.msgMode), serverParams.counter * 2, totalSecs);
+  final WorkResult result = WorkResult(
+      Modes(arguments.listenMode, arguments.msgMode),
+      serverParams.counter * 2,
+      totalSecs);
 
   // Stop the client
   stop(clientParams);
@@ -263,16 +270,25 @@ Future<void> main(List<String> args) async {
       Modes(ListenMode.isolate, MsgMode.asFb),
     ];
     for (final Modes modes in listenAndMsgModes) {
-      print('time=${arguments.testTimeInSecs} $modes');
       arguments.listenMode = modes.listenMode;
       arguments.msgMode = modes.msgMode;
-      final WorkResult result = await doWork(arguments);
-      results.add(result);
+      WorkResult avgResult =
+          WorkResult(Modes(modes.listenMode, modes.msgMode), 0, 0);
+      for (int i = 1; i <= arguments.testRepeats; i++) {
+        stdout.write('${i.toString().padLeft(4)}: '
+                     'time=${arguments.testTimeInSecs.toString().padLeft(5)} '
+                     '${modes.toString().padLeft(36)}\r');
+        WorkResult result = await doWork(arguments);
+        avgResult.msgs += result.msgs;
+        avgResult.totalSecs += result.totalSecs;
+      }
+      results.add(avgResult);
     }
     print('');
     print('${"".padLeft(34)}${WorkResult.header(15)}');
     for (final WorkResult result in results) {
-      print('${result.modes.toString().padRight(34)}${result.toStringNoLabels(15)}');
+      print(
+          '${result.modes.toString().padRight(34)}${result.toStringNoLabels(15)}');
     }
   } else {
     final WorkResult result = await doWork(arguments);
