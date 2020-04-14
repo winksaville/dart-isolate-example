@@ -26,7 +26,7 @@
         <entry key="path">
           <value>
             <list>
-              <option value="$USER_HOME$/.pub-cache/hosted/pub.dartlang.org/path-1.6.4/lib" />
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dartlang.org/path-1.7.0/lib" />
             </list>
           </value>
         </entry>
@@ -36,7 +36,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dartlang.org/args-1.6.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dartlang.org/flat_buffers-1.12.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dartlang.org/intl-0.16.1/lib" />
-      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dartlang.org/path-1.6.4/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dartlang.org/path-1.7.0/lib" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
