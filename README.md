@@ -108,7 +108,7 @@ This can be done with makefile using `vm` target such
 as `make vm test=3`. Or directly with `dart lib/main.dart --test=3`:
 ```
 $ dart lib/main.dart --test=3
-lib/main.dart: Warning: Interpreting this as package URI, 'package:isolate_exmaple/main.dart'.
+lib/main.dart: Warning: Interpreting this as package URI, 'package:isolate_example/main.dart'.
 arguments=ListenMode.isolate MsgMode.asInt
 modes=[ListenMode.local, MsgMode.asInt]
 wait about 3 seconds...

@@ -5,7 +5,7 @@
 // client is give a ReceiverPort.sendPort. This allow it to send
 // messages back to the creator aka the server. But the server can't
 // send messages to the client. It is at the perogative of the
-// client if and when to send a ReceivePort.sneport back to the server.
+// client if and when to send a ReceivePort.senport back to the server.
 //
 // Another option is to use an IsolateChannel [1] with an example at [2].
 //
