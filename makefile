@@ -2,6 +2,8 @@ listenMode=isolate
 msgMode=asInt
 test=0
 
+all: bin/main
+
 bin/main: lib/main.dart lib/client.dart lib/misc.dart lib/test1_generated.dart
 	dart2native $< -o $@
 
