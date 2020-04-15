@@ -17,8 +17,8 @@ class Msg {
   final fb.BufferContext _bc;
   final int _bcOffset;
 
-  int get microsecs => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 4, 0);
-  int get duration => const fb.Int32Reader().vTableGet(_bc, _bcOffset, 6, 0);
+  int get microsecs => const fb.Uint64Reader().vTableGet(_bc, _bcOffset, 4, 0);
+  int get duration => const fb.Int64Reader().vTableGet(_bc, _bcOffset, 6, 0);
 
   @override
   String toString() {
@@ -46,11 +46,11 @@ class MsgBuilder {
   }
 
   int addMicrosecs(int microsecs) {
-    fbBuilder.addInt32(0, microsecs);
+    fbBuilder.addUint64(0, microsecs);
     return fbBuilder.offset;
   }
   int addDuration(int duration) {
-    fbBuilder.addInt32(1, duration);
+    fbBuilder.addInt64(1, duration);
     return fbBuilder.offset;
   }
 
@@ -77,8 +77,8 @@ class MsgObjectBuilder extends fb.ObjectBuilder {
     assert(fbBuilder != null);
 
     fbBuilder.startTable();
-    fbBuilder.addInt32(0, _microsecs);
-    fbBuilder.addInt32(1, _duration);
+    fbBuilder.addUint64(0, _microsecs);
+    fbBuilder.addInt64(1, _duration);
     return fbBuilder.endTable();
   }
 

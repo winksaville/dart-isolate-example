@@ -1,6 +1,6 @@
 table Msg {
-  microsecs:int;
-  duration:int;
+  microsecs:ulong;
+  duration:long;
 }
 
 root_type Msg;
