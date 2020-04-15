@@ -18,7 +18,7 @@ lib/test1_generated.dart: schema/test1.fbs
 	flatc -o $(dir $@) --dart $<
 
 .PHONY: vm
-vm:
+vm: lib/test1_generated.dart
 	@( if [[ ${test} == 0 ]]; then \
 	    dart lib/main.dart --listenMode=${listenMode} --msgMode=${msgMode}; \
 	  else \
