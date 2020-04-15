@@ -215,8 +215,8 @@ Future<WorkResult> doWork(Arguments arguments) async {
 
   if (arguments.testTimeInSecs == 0) {
     // Tell the user to press a key
-    print(
-        '${arguments.listenMode} ${arguments.msgMode} -- Press any key to stop...');
+    print('${arguments.listenMode} ${arguments.msgMode} -- '
+        'Press return and sometimes eny key to stop...');
 
     // Change stdin so it doesn't echo input and doesn't wait for enter key
     stdin.echoMode = false;
@@ -276,8 +276,8 @@ Future<void> main(List<String> args) async {
           WorkResult(Modes(modes.listenMode, modes.msgMode), 0, 0);
       for (int i = 1; i <= arguments.testRepeats; i++) {
         stdout.write('${i.toString().padLeft(4)}: '
-                     'time=${arguments.testTimeInSecs.toString().padLeft(5)} '
-                     '${modes.toString().padLeft(36)}\r');
+            'time=${arguments.testTimeInSecs.toString().padLeft(5)} '
+            '${modes.toString().padLeft(36)}\r');
         WorkResult result = await doWork(arguments);
         avgResult.msgs += result.msgs;
         avgResult.totalSecs += result.totalSecs;
