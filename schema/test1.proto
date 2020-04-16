@@ -1,0 +1,7 @@
+syntax = "proto3";
+// package isolate_example
+
+message Msg {
+  uint64 microsecs = 1;
+  int64 duration = 2;
+}

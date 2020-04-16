@@ -41,7 +41,7 @@ Arguments parseArgs(List<String> args) {
       abbr: 'l', allowed: <String>['local', 'isolate'], defaultsTo: 'isolate');
   parser.addOption('msgMode',
       abbr: 'm',
-      allowed: <String>['asInt', 'asClass', 'asMap', 'asFb'],
+      allowed: <String>['asInt', 'asClass', 'asMap', 'asFb', 'asProto'],
       defaultsTo: 'asInt');
   parser.addFlag('help', abbr: 'h', negatable: false);
 
@@ -73,6 +73,9 @@ Arguments parseArgs(List<String> args) {
       break;
     case 'asFb':
       arguments.msgMode = MsgMode.asFb;
+      break;
+    case 'asProto':
+      arguments.msgMode = MsgMode.asProto;
       break;
   }
 
@@ -126,6 +129,9 @@ Future<Parameters> start(Parameters serverParams) async {
         break;
       case MsgMode.asFb:
         serverParams.listener = processAsFb;
+        break;
+      case MsgMode.asProto:
+        serverParams.listener = processAsProto;
         break;
     }
   };
@@ -264,21 +270,23 @@ Future<void> main(List<String> args) async {
       Modes(ListenMode.local, MsgMode.asClass),
       Modes(ListenMode.local, MsgMode.asMap),
       Modes(ListenMode.local, MsgMode.asFb),
+      Modes(ListenMode.local, MsgMode.asProto),
       Modes(ListenMode.isolate, MsgMode.asInt),
       Modes(ListenMode.isolate, MsgMode.asClass),
       Modes(ListenMode.isolate, MsgMode.asMap),
       Modes(ListenMode.isolate, MsgMode.asFb),
+      Modes(ListenMode.isolate, MsgMode.asProto),
     ];
     for (final Modes modes in listenAndMsgModes) {
       arguments.listenMode = modes.listenMode;
       arguments.msgMode = modes.msgMode;
-      WorkResult avgResult =
+      final WorkResult avgResult =
           WorkResult(Modes(modes.listenMode, modes.msgMode), 0, 0);
       for (int i = 1; i <= arguments.testRepeats; i++) {
         stdout.write('${i.toString().padLeft(4)}: '
             'time=${arguments.testTimeInSecs.toString().padLeft(5)} '
             '${modes.toString().padLeft(36)}\r');
-        WorkResult result = await doWork(arguments);
+        final WorkResult result = await doWork(arguments);
         avgResult.msgs += result.msgs;
         avgResult.totalSecs += result.totalSecs;
       }

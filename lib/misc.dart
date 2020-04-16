@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'package:fixnum/fixnum.dart' as fixnum;
 import 'package:flat_buffers/flat_buffers.dart' as fb;
+import 'test1.pb.dart' as t1_pb;
 import 'test1_generated.dart' as test1;
 
 enum Cmd { microsecs, duration }
-enum MsgMode { asInt, asMap, asClass, asFb }
+enum MsgMode { asInt, asMap, asClass, asFb, asProto }
 enum ListenMode { local, isolate }
 
 class Message {
@@ -65,7 +67,7 @@ void processAsClass(Parameters params, int now, Message msg) {
 
 /// Process Flat buffers messages which is a List<int>
 void processAsFb(Parameters params, int now, List<int> msg) {
-  //// Deserialize msg from bytes and and calculate duration
+  // Deserialize msg from bytes and and calculate duration
   final test1.Msg m = test1.Msg(msg);
   final int duration = now - m.microsecs;
 
@@ -80,6 +82,18 @@ void processAsFb(Parameters params, int now, List<int> msg) {
 
   // Send the buffer
   params.partnerPort.send(buffer);
+}
+
+/// Process Protobuf messages which is a List<int>
+void processAsProto(Parameters params, int now, List<int> msg) {
+  // Deserialize msg from bytes and and calculate duration
+  final t1_pb.Msg m = t1_pb.Msg.fromBuffer(msg);
+
+  final fixnum.Int64 now64 = fixnum.Int64(now);
+  m.duration = now64 - m.microsecs;
+  m.microsecs = now64;
+
+  params.partnerPort.send(m.writeToBuffer());
 }
 
 Future<Duration> delay(Duration duration) async {

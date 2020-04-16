@@ -3,3 +3,4 @@ dependencies:
   intl: ^0.16.0
   args: ^1.6.0
   flat_buffers: ^1.12.0
+  protoc_plugin: ^19.0.1

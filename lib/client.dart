@@ -1,5 +1,7 @@
 import 'dart:isolate';
+import 'package:fixnum/fixnum.dart' as fixnum;
 import 'misc.dart';
+import 'test1.pb.dart' as t1_pb;
 import 'test1_generated.dart' as test1;
 
 /// Client receives a Send port from our partner
@@ -38,6 +40,14 @@ void client(Parameters params) {
       params.listener = processAsFb;
       params.listener(params, now,
           test1.MsgObjectBuilder(microsecs: now, duration: 0).toBytes());
+      break;
+    case MsgMode.asProto:
+      params.listener = processAsProto;
+      final t1_pb.Msg m = t1_pb.Msg();
+      m.microsecs = fixnum.Int64(now);
+      m.duration = fixnum.Int64(0);
+      params.listener(params, now, m.writeToBuffer());
+      break;
   }
 
   // Wait for response and send more messages as fast as we can
