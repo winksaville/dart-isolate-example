@@ -1,0 +1,50 @@
+struct Date {
+    year:int;
+    month:int;
+    day:int;
+}
+
+table Person {
+    firstName:string;
+    lastName:string;
+    telephone:string;
+    birthDate: Date;
+    height: double;
+}
+
+table Car {
+    make:string;
+    model:string;
+    year: Date;
+}
+
+table People {
+    array:[Person];
+}
+
+table Cars {
+    cars:[Car];
+}
+
+table Timestamps {
+    list:[uint64];
+}
+
+union MsgBody {
+    People,
+    Cars,
+    Timestamps,
+}
+
+table MsgHeader {
+    cmd:int;
+    status:int;
+    timestamp:uint64;
+}
+
+table FbMsg {
+    header:MsgHeader;
+    body: MsgBody;
+}
+
+root_type FbMsg;

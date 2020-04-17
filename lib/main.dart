@@ -41,7 +41,7 @@ Arguments parseArgs(List<String> args) {
       abbr: 'l', allowed: <String>['local', 'isolate'], defaultsTo: 'isolate');
   parser.addOption('msgMode',
       abbr: 'm',
-      allowed: <String>['asInt', 'asClass', 'asMap', 'asFb', 'asProto'],
+      allowed: <String>['asInt', 'asClass', 'asMap', 'asFb', 'asProto', 'asFbMsg'],
       defaultsTo: 'asInt');
   parser.addFlag('help', abbr: 'h', negatable: false);
 
@@ -76,6 +76,9 @@ Arguments parseArgs(List<String> args) {
       break;
     case 'asProto':
       arguments.msgMode = MsgMode.asProto;
+      break;
+    case 'asFbMsg':
+      arguments.msgMode = MsgMode.asFbMsg;
       break;
   }
 
@@ -132,6 +135,9 @@ Future<Parameters> start(Parameters serverParams) async {
         break;
       case MsgMode.asProto:
         serverParams.listener = processAsProto;
+        break;
+      case MsgMode.asFbMsg:
+        serverParams.listener = processAsFbMsg;
         break;
     }
   };
@@ -271,11 +277,13 @@ Future<void> main(List<String> args) async {
       Modes(ListenMode.local, MsgMode.asMap),
       Modes(ListenMode.local, MsgMode.asFb),
       Modes(ListenMode.local, MsgMode.asProto),
+      Modes(ListenMode.local, MsgMode.asFbMsg),
       Modes(ListenMode.isolate, MsgMode.asInt),
       Modes(ListenMode.isolate, MsgMode.asClass),
       Modes(ListenMode.isolate, MsgMode.asMap),
       Modes(ListenMode.isolate, MsgMode.asFb),
       Modes(ListenMode.isolate, MsgMode.asProto),
+      Modes(ListenMode.isolate, MsgMode.asFbMsg),
     ];
     for (final Modes modes in listenAndMsgModes) {
       arguments.listenMode = modes.listenMode;

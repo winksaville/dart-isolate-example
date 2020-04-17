@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'package:fixnum/fixnum.dart' as fixnum;
+import 'package:flat_buffers/flat_buffers.dart' as fb;
 import 'misc.dart';
 import 'test1.pb.dart' as t1_pb;
 import 'test1_generated.dart' as test1;
@@ -47,6 +48,20 @@ void client(Parameters params) {
       m.microsecs = fixnum.Int64(now);
       m.duration = fixnum.Int64(0);
       params.listener(params, now, m.writeToBuffer());
+      break;
+    case MsgMode.asFbMsg:
+      params.listener = processAsFbMsg;
+
+      final fb.Builder builder = fb.Builder(initialSize: 1024);
+
+      final FbPeopleMessage pm = FbPeopleMessage(builder, FbMsgHeader(1, 0, now));
+
+      pm.addPerson(FbPerson('Wink', 'Saville', '831-234-2134', FbDate(1949, 12, 17), 71.5));
+      pm.addPerson(FbPerson('Yvette', 'Saville', '831-234-2133', FbDate(1954, 7, 11), 63.0));
+
+      final List<int> buffer = pm.finish();
+
+      params.listener(params, now, buffer);
       break;
   }
 
