@@ -10,6 +10,8 @@ import 'test1_generated.dart' as test1;
 void client(Parameters params) {
   assert(params.partnerPort != null);
 
+  Stopwatch watch = Stopwatch();
+
   // Create a port that will receive messages from our partner
   params.receivePort = ReceivePort();
 
@@ -21,6 +23,9 @@ void client(Parameters params) {
   params.counter = 1;
   final int now = DateTime.now().microsecondsSinceEpoch;
   switch (params.msgMode) {
+    case MsgMode.all:
+      params.listener = null; // Will be set by doWork
+      break;
     case MsgMode.asInt:
       // local=1.4m+ m/s, isolate=225k+ m/s
       params.listener = processAsInt;
@@ -54,10 +59,13 @@ void client(Parameters params) {
 
       final fb.Builder builder = fb.Builder(initialSize: 1024);
 
-      final FbPeopleMessage pm = FbPeopleMessage(builder, FbMsgHeader(1, 0, now));
+      final FbPeopleMessage pm =
+          FbPeopleMessage(builder, FbMsgHeader(1, 0, now));
 
-      pm.addPerson(FbPerson('Wink', 'Saville', '831-234-2134', FbDate(1949, 12, 17), 71.5));
-      pm.addPerson(FbPerson('Yvette', 'Saville', '831-234-2133', FbDate(1954, 7, 11), 63.0));
+      pm.addPerson(FbPerson(
+          'Wink', 'Saville', '831-234-2134', FbDate(1949, 12, 17), 71.5));
+      pm.addPerson(FbPerson(
+          'Yvette', 'Saville', '831-234-2133', FbDate(1954, 7, 11), 63.0));
 
       final List<int> buffer = pm.finish();
 
@@ -68,7 +76,7 @@ void client(Parameters params) {
   // Wait for response and send more messages as fast as we can
   params.receivePort.listen(
     (dynamic message) {
-      final int now = DateTime.now().microsecondsSinceEpoch;
+      final int now = watch.elapsedTicks;
       params.counter += 1;
       params.listener(params, now, message);
     },

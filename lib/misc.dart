@@ -7,7 +7,7 @@ import 'test1.pb.dart' as t1_pb;
 import 'test1_generated.dart' as test1;
 
 enum Cmd { microsecs, duration }
-enum MsgMode { asInt, asMap, asClass, asFb, asProto, asFbMsg }
+enum MsgMode { all, asInt, asMap, asClass, asFb, asProto, asFbMsg }
 enum ListenMode { local, isolate }
 
 class Message {

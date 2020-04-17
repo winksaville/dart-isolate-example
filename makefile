@@ -1,6 +1,7 @@
-listenMode=isolate
-msgMode=asInt
-test=0
+listenMode=local
+msgMode=all
+time=2
+repeats=1
 
 all: bin/main
 
@@ -8,13 +9,7 @@ bin/main: lib/main.dart lib/client.dart lib/misc.dart lib/test1_generated.dart l
 	dart2native $< -o $@
 
 run: bin/main
-	@( if [[ ${test} == 0 ]]; then \
-	    $< --listenMode=${listenMode} --msgMode=${msgMode}; \
-	  else \
-	    $< --test=${test}; \
-	  fi \
-	)
-
+	@$< --listenMode=${listenMode} --msgMode=${msgMode} --time=${time} --repeats=${repeats}
 
 lib/fb_msg_generated.dart: schema/fb_msg.fbs
 	flatc -o $(dir $@) --dart $<
@@ -27,12 +22,7 @@ lib/test1.pb.dart: schema/test1.proto
 
 .PHONY: vm
 vm: lib/test1_generated.dart lib/test1.pb.dart lib/fb_msg_generated.dart
-	@( if [[ ${test} == 0 ]]; then \
-	    dart lib/main.dart --listenMode=${listenMode} --msgMode=${msgMode}; \
-	  else \
-	    dart lib/main.dart --test=${test}; \
-	  fi \
-	)
+	@dart lib/main.dart --listenMode=${listenMode} --msgMode=${msgMode} --time=${time} --repeats=${repeats}
 
 .PHONY: clean
 clean:
