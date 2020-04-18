@@ -16,8 +16,8 @@ import 'dart:io';
 import 'dart:isolate';
 import 'package:args/args.dart';
 import 'package:intl/intl.dart';
-import 'client.dart';
-import 'misc.dart';
+import 'package:isolate_example/client.dart';
+import 'package:isolate_example/misc.dart';
 
 class Arguments {
   Arguments();

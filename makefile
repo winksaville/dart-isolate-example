@@ -5,7 +5,7 @@ repeats=1
 
 all: bin/main
 
-bin/main: lib/main.dart lib/client.dart lib/misc.dart lib/test1_generated.dart lib/test1.pb.dart lib/fb_msg_generated.dart
+bin/main: bin/main.dart lib/client.dart lib/misc.dart lib/test1_generated.dart lib/test1.pb.dart lib/fb_msg_generated.dart
 	dart2native $< -o $@
 
 run: bin/main
@@ -21,8 +21,8 @@ lib/test1.pb.dart: schema/test1.proto
 	protoc -I=$(dir $<) --dart_out=$(dir $@) $<
 
 .PHONY: vm
-vm: lib/test1_generated.dart lib/test1.pb.dart lib/fb_msg_generated.dart
-	@dart lib/main.dart --listenMode=${listenMode} --msgMode=${msgMode} --time=${time} --repeats=${repeats}
+vm: bin/main.dart lib/test1_generated.dart lib/test1.pb.dart lib/fb_msg_generated.dart
+	@dart $< --listenMode=${listenMode} --msgMode=${msgMode} --time=${time} --repeats=${repeats}
 
 .PHONY: clean
 clean:
